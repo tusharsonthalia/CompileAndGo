@@ -1,0 +1,1 @@
+semantic error(6:7): left-operand of type "int" does not match right-operand of type "nil"

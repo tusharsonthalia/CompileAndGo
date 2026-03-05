@@ -1,0 +1,9 @@
+func main() {
+
+   var a bool;
+
+  a = +;
+
+ printf("%d", a);
+
+}

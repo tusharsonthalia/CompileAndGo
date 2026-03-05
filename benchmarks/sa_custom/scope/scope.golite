@@ -1,0 +1,5 @@
+var a int;
+func main() {
+    var a bool;
+    if (a) {}
+}

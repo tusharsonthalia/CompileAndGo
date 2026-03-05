@@ -1,0 +1,3015 @@
+MPCS 51300 - Compilers
+M5: Liveness Analysis
+
+Lamont Samuels
+Copyright 2010, Keith D. Cooper & Linda Torczon, all rights reserved.
+Students enrolled in Comp 412 at Rice University have explicit
+permission to make copies of these materials for their personal use.
+Faculty from other educational institutions may use these materials
+for nonprofit educational purposes, provided this copyright notice is
+preserved.
+
+Liveness Analysis
+
+2
+
+What is Liveness Analysis?
+• A technique used in compiler optimizations to determine
+which variables are live at each point in a program. A variable
+is considered live
+- If its value may be needed in the future (i.e., if it will be
+used before it is overwritten).
+- Generally speaking, it is live between its definition and its
+last use.
+• Liveness analysis helps identify opportunities for
+optimization, such as register allocation or dead code
+elimination.
+- In this lecture, we will focus on register allocation and
+come back to liveness analysis when talking about other
+optimizations.
+MPCS 51300 - Compilers
+
+3
+
+Block-Level Liveness
+• We compute liveness per basic block.
+• For each block B:
+- Live-In[B]
+Variables live at the beginning of B.
+- Live-Out[B]
+Variables live at the end of B.
+- use[B]
+Variables used before being defined in B.
+- def[B]
+Variables defined in B.
+
+MPCS 51300 - Compilers
+
+4
+
+The Core Equations
+• Liveness is a backward dataflow analysis:
+
+• Interpretation
+- Live-Out:
+A variable is live at the end of B if a successor needs it.
+- Live-In:
+A variable is live at the start of B if:
+‣ It is used in B, OR
+‣ It is needed later and not redefined here.
+• Why is it backwards?
+- Live-In depends on Live-Out
+Live-Out depends on successor Live-In
+- So information flows: Future -> Past
+MPCS 51300 - Compilers
+
+5
+
+The Algorithm (Fixed Point Iteration
+Pseudocode)
+func ComputeLiveness(blocks []*BasicBlocks) {
+for all blocks:
+Live-In[B] = {}
+Live-Out[B] = {}
+changed = true
+while changed:
+changed = false
+for each block B in reverse order:
+oldIn = Live-In[B]
+oldOut = Live-Out[B]
+Live-Out[B] = union of Live-In[succ[B]]
+Live-In[B] = use[B] ∪ (Live-Out[B] − def[B])
+if oldIn != Live-In[B] or oldOut != Live-Out[B]:
+changed = true
+}
+
+MPCS 51300 - Compilers
+
+6
+
+Example
+func main() {
+var limit, a int;
+scan limit;
+scan a;
+for (a <= limit) {
+if (a > 10) {
+printf("%d\n",a);
+}
+a = a + 1;
+}
+} L0
+
+L2
+L4
+
+L3
+L5
+L6
+
+L7
+L8
+
+L1
+
+fi
+
+MPCS 51300 - Compilers
+
+de ne i64 @main()
+{
+L0:
+call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.read, i32 0, i32 0),i64*
+@.read_scratch)
+%r11 = load i64, i64* @.read_scratch
+call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.read, i32 0, i32 0),i64*
+@.read_scratch)
+%r12 = load i64, i64* @.read_scratch
+br label %L2
+L2:
+%a_1 = phi i64 [ %r12, %L0 ], [ %r9, %L8 ]
+%r3 = icmp sle i64 %a_1, %r11
+br i1 %r3, label %L3, label %L4
+L3:
+br label %L5
+L5:
+%r6 = icmp sgt i64 %a_1, 10
+br i1 %r6, label %L6, label %L7
+L7:
+br label %L8
+L6:
+call i8 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.fstr0, i32 0, i32 0),i64 %
+br label %L8
+L8:
+%r9 = add i64 %a_1, 1
+br label %L2
+L4:
+br label %L1
+L1:
+ret i64 0
+}
+7
+
+Compute Defs and Uses sets
+
+L0:
+call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.read, i32 0, i32 0),i64*
+uses[L0]={}
+@.read_scratch)
+defs[L0]={%r11, %r12}
+%r11 = load i64, i64* @.read_scratch
+uses[L2]={%r11}
+call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.read, i32 0, i32 0),i64*
+defs[L2]={%r3,%a_1}
+@.read_scratch)
+uses[L3]={}
+%r12 = load i64, i64* @.read_scratch
+defs[L3]={}
+br label %L2
+uses[L5]={%a_1}
+L2:
+defs[L5]={%r6}
+%a_1 = phi i64 [ %r12, %L0 ], [ %r9, %L8 ]
+uses[L7]={}
+%r3 = icmp sle i64 %a_1, %r11
+defs[L7]={}
+br i1 %r3, label %L3, label %L4
+uses[L6]={%a_1}
+L3:
+defs[L6]={}
+br label %L5
+uses[L8]={%a_1}
+L5:
+defs[L8]={%r9}
+%r6 = icmp sgt i64 %a_1, 10
+uses[L4]={}
+br i1 %r6, label %L6, label %L7
+defs[L4]={}
+L7:
+uses[L1]={}
+br label %L8
+defs[L1]={}
+L6:
+call i8 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.fstr0, i32 0, i32 0),i64 %a_1)
+br label %L8
+L8:
+%r9 = add i64 %a_1, 1
+br label %L2
+L4:
+br label %L1
+L1:
+ret i64 0
+MPCS 51300 - Compilers
+
+8
+
+Step 1: Initialize and Setup
+func ComputeLiveness(blocks []*BasicBlocks) {
+for all blocks:
+Live-In[B] = {}
+Live-Out[B] = {}
+
+uses[L0]={}
+defs[L0]={%r11, %r12} Live-In[L0] = {}, Live-Out[L0]={}
+Live-In[L1] = {}, Live-Out[L1]={}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1} Live-In[L2] = {}, Live-Out[L2]={}
+Live-In[L3] = {}, Live-Out[L3]={}
+uses[L3]={}
+Live-In[L4] = {}, Live-Out[L4]={}
+defs[L3]={}
+changed = true
+Live-In[L5] = {}, Live-Out[L5]={}
+uses[L5]={%a_1}
+while changed:
+Live-In[L6] = {}, Live-Out[L6]={}
+defs[L5]={%r6}
+changed = false
+Live-In[L7] = {}, Live-Out[L7]={}
+uses[L7]={}
+for each block B in reverse order:
+Live-In[L8] = {}, Live-Out[L8]={}
+defs[L7]={}
+oldIn = Live-In[B]
+uses[L6]={%a_1}
+defs[L6]={}
+oldOut = Live-Out[B]
+uses[L8]={%a_1}
+defs[L8]={%r9}
+Live-Out[B] = union of Live-In[succ[B]]
+uses[L4]={}
+defs[L4]={}
+Live-In[B] = use[B] ∪ (Live-Out[B] − def[B]) uses[L1]={}
+defs[L1]={}
+
+if oldIn != Live-In[B] or oldOut != Live-Out[B]:
+changed = true
+}
+
+MPCS 51300 - Compilers
+
+9
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L1] = {}
+Live-Out[L1]={}
+
+L5
+L6
+
+L7
+L8
+
+L1
+
+MPCS 51300 - Compilers
+
+10
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L8] = {%a_1}
+Live-Out[L8]={}
+
+L5
+L6
+
+L7
+L8
+
+L1
+
+Live-In[L1] = {}
+MPCS 51300 - Compilers
+
+11
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L4] = {}
+Live-Out[L4]={}
+
+L5
+L6
+
+L7
+L8
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%a_1}
+MPCS 51300 - Compilers
+
+12
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L7] = {%a_1}
+Live-Out[L7]={%a_1}
+
+L5
+L6
+
+L7
+L8
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%a_1},Live-In[L4] = {}
+MPCS 51300 - Compilers
+
+13
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L6] = {%a_1}
+Live-Out[L6]={%a_1}
+
+L5
+L6
+
+L7
+L8
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%a_1},Live-In[L4] = {}, Live-In[L7]={%a_1}
+MPCS 51300 - Compilers
+
+14
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L5] = {%a_1}
+Live-Out[L5]={%a_1}
+
+L5
+L6
+
+L7
+L8
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%a_1},Live-In[L4] = {}, Live-In[L7]={%a_1}, Live-In[L6]={%a_1}
+MPCS 51300 - Compilers
+
+15
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L3] = {%a_1}
+Live-Out[L3]={%a_1}
+
+L5
+L6
+
+L7
+L8
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%a_1},Live-In[L4] = {}, Live-In[L7]={%a_1}, Live-In[L6]={%a_1},
+Live-In[L5]={%a_1}
+MPCS 51300 - Compilers
+
+16
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L2] = {%r11}
+Live-Out[L2]={%a_1}
+
+L5
+L6
+
+L7
+L8
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%a_1},Live-In[L4] = {}, Live-In[L7]={%a_1}, Live-In[L6]={%a_1},
+Live-In[L5]={%a_1}, Live-In[L3] = {%a_1}
+MPCS 51300 - Compilers
+
+17
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L0] = {}
+Live-Out[L0]={%r11}
+
+L5
+L6
+
+L7
+L8
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%a_1},Live-In[L4] = {}, Live-In[L7]={%a_1}, Live-In[L6]={%a_1},
+Live-In[L5]={%a_1}, Live-In[L3] = {%a_1}, Live-In[L2] = {%r11}
+MPCS 51300 - Compilers
+
+18
+
+Iteration 2
+• Since all blocks old ins and outs
+were empty and many were
+updated we repeat the algorithm
+again.
+• We are going to skip over L1, and
+L4 since there are no changes to
+their liveness sets.
+
+L0
+L2
+L4
+
+L3
+L5
+L6
+
+L7
+L8
+
+L1
+
+MPCS 51300 - Compilers
+
+19
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L8] = {%a_1,%r11}
+Live-Out[L8]={%r11}
+
+L5
+L6
+
+L7
+L8
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%a_1},Live-In[L4] = {}, Live-In[L7]={%a_1}, Live-In[L6]={%a_1},
+Live-In[L5]={%a_1}, Live-In[L3] = {%a_1}, Live-In[L2] = {%r11}
+MPCS 51300 - Compilers
+
+20
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L7] = {%r11,%a_1}
+Live-Out[L7]={%r11,%a_1}
+
+L5
+L6
+
+L7
+L8
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%r11,%a_1},Live-In[L4] = {}, Live-In[L7]={%a_1}, Live-In[L6]={%a_1},
+Live-In[L5]={%a_1}, Live-In[L3] = {%a_1}, Live-In[L2] = {%r11}
+MPCS 51300 - Compilers
+
+21
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L6] ={%r11,%a_1}
+Live-Out[L6]={%r11,%a_1}
+
+L5
+L6
+
+L7
+L8
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%r11,%a_1},Live-In[L4] = {}, Live-In[L7]={%r11,%a_1}, Live-In[L6]={%a_1}
+Live-In[L5]={%a_1}, Live-In[L3] = {%a_1}, Live-In[L2] = {%r11}
+MPCS 51300 - Compilers
+
+22
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L5] = {%r11,%a_1}
+Live-Out[L5]={%r11,%a_1}
+
+L5
+L6
+
+L7
+L8
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%r11,%a_1},Live-In[L4] = {}, Live-In[L7]={%r11,%a_1}, Live-In[L6]={%r11,%a_1},
+Live-In[L5]={%a_1}, Live-In[L3] = {%a_1}, Live-In[L2] = {%r11}
+MPCS 51300 - Compilers
+
+23
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L3] = {%r11,%a_1}
+Live-Out[L3]= {%r11,%a_1}
+
+L5
+L6
+
+L7
+L8
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%r11,%a_1},Live-In[L4] = {}, Live-In[L7]={%r11,%a_1}, Live-In[L6]={%r11,%a_1},
+Live-In[L5]= {%r11,%a_1}, Live-In[L3] = {%a_1}, Live-In[L2] = {%r11}
+MPCS 51300 - Compilers
+
+24
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L2] = {%r11}
+Live-Out[L2]={%r11,%a_1}
+
+L5
+L6
+
+L7
+L8
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%r11,%a_1},Live-In[L4] = {}, Live-In[L7]={%r11,%a_1}, Live-In[L6]={%r11,%a_1},
+Live-In[L5]= {%r11,%a_1}, Live-In[L3] = {%r11,%a_1}, Live-In[L2] = {%r11}
+MPCS 51300 - Compilers
+
+25
+
+L0
+L2
+L4
+
+L3
+
+Live-In[L0] = {}
+Live-Out[L0]={%r11}
+
+L5
+L6
+
+L7
+L8
+
+uses[L0]={}
+defs[L0]={%r11, %r12}
+uses[L2]={%r11}
+defs[L2]={%r3,%a_1}
+uses[L3]={}
+defs[L3]={}
+uses[L5]={%a_1}
+defs[L5]={%r6}
+uses[L7]={}
+defs[L7]={}
+uses[L6]={%a_1}
+defs[L6]={}
+uses[L8]={%a_1}
+defs[L8]={%r9}
+uses[L4]={}
+defs[L4]={}
+uses[L1]={}
+defs[L1]={}
+
+L1
+
+Live-In[L1] = {},Live-In[L8] = {%r11,%a_1},Live-In[L4] = {}, Live-In[L7]={%r11,%a_1}, Live-In[L6]={%r11,%a_1},
+Live-In[L5]= {%r11,%a_1}, Live-In[L3] = {%r11,%a_1}, Live-In[L2] = {%r11}
+MPCS 51300 - Compilers
+
+26
+
+Live Analysis Done
+• Iteration 3: Repeat once more but
+nothing changes. We reached fixed
+point.
+• r11 - Live from L0 through entire
+loop.
+• a1 - Defined in L2 and used
+throughout loop. Dies after L8 before
+L2 definition overwrites it
+Block
+L0
+L2
+L3
+L5
+L6
+L7
+L8
+L4
+L1
+MPCS 51300 - Compilers
+
+Live-In
+{}
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{}
+{}
+
+Live-Out
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{r11}
+{}
+{}
+
+L0
+L2
+L4
+
+L3
+L5
+L6
+
+L7
+L8
+
+L1
+
+27
+
+Live Ranges
+• The live range represent the span of time a variable is
+live in a program.
+• The live range begins at the point where the variable is
+first used and ends when it is last used or overwritten.
+- If a variable is defined an instruction ix and last used
+at an instruction iy then it’s live range is [ix, iy]
+- The last use might not be in the current block but
+rather in a later block. We must use our live-out set to
+know whether it’s still alive in a later block.
+
+MPCS 51300 - Compilers
+
+28
+
+Live Interval Construction Algorithm
+(Pseudocode)
+• Given:
+• Instructions numbered 0..N−1
+• Live-In / Live-Out computed
+
+//-------------------------------------------------// STEP 2: Process instructions normally
+//--------------------------------------------------
+
+• Algorithm:
+
+for each instruction i in order:
+for each v defined at i:
+if interval[v].start == -1:
+interval[v].start = i
+interval[v].end = max(interval[v].end, i)
+
+// instructions numbered 0..N-1
+for each variable v:
+interval[v].start = -1
+interval[v].end = -1
+
+for each v used at i:
+if interval[v].start == -1:
+interval[v].start = i
+interval[v].end = max(interval[v].end, i)
+
+//-------------------------------------------------// STEP 1: Handle phi edge uses
+//-------------------------------------------------for each block B:
+for each successor S of B:
+for each phi in S:
+v = operand coming from B
+interval[v].end =
+max(interval[v].end,
+last_instruction_of_block(B))
+MPCS 51300 - Compilers
+
+for each v ∈ Live-Out(block(i)):
+interval[v].end =
+max(interval[v].end, i)
+
+29
+
+Linearize Code
+
+fi
+
+MPCS 51300 - Compilers
+
+1. de ne i64 @main()
+{
+L0:
+2. call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.rea
+@.read_scratch)
+3. %r11 = load i64, i64* @.read_scratch
+4. call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.read
+@.read_scratch)
+5. %r12 = load i64, i64* @.read_scratch
+6. br label %L2
+L2:
+7. %a_1 = phi i64 [ %r12, %L0 ], [ %r9, %L8 ]
+8. %r3 = icmp sle i64 %a_1, %r11
+9. br i1 %r3, label %L3, label %L4
+L3:
+10. br label %L5
+L5:
+11. %r6 = icmp sgt i64 %a_1, 10
+12. br i1 %r6, label %L6, label %L7
+L7:
+13. br label %L8
+L6:
+14. call i8 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.fst
+%a_1)
+15. br label %L8
+L8:
+16. %r9 = add i64 %a_1, 1
+17. br label %L2
+L4:
+18. br label %L1
+L1:
+19. ret i64 0
+}
+30
+
+Step 1: Handle Phis
+L2:
+7. %a_1 = phi i64 [ %r12, %L0 ], [ %r9, %L8 ]
+8. %r3 = icmp sle i64 %a_1, %r11
+9. br i1 %r3, label %L3, label %L4
+L0:
+2. call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.read, i32 0, i32 0),i64*
+@.read_scratch)
+3. %r11 = load i64, i64* @.read_scratch
+4. call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.read, i32 0, i32 0),i64*
+@.read_scratch)
+Virtual Register Live Start
+5. %r12 = load i64, i64* @.read_scratch
+6. br label %L2
+L8:
+16. %r9 = add i64 %a_1, 1
+r11
+-1
+17. br label %L2
+
+MPCS 51300 - Compilers
+
+31
+
+Live End
+
+-1
+
+r12
+
+-1
+
+6
+
+a_1
+
+-1
+
+-1
+
+r3
+
+-1
+
+-1
+
+r6
+
+—1
+
+-1
+
+r9
+
+-1
+
+17
+
+Block L0
+L0:
+2. call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4 x
+i8]* @.read, i32 0, i32 0),i64* @.read_scratch)
+3. %r11 = load i64, i64* @.read_scratch
+4. call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4 x
+i8]* @.read, i32 0, i32 0),i64* @.read_scratch)
+5. %r12 = load i64, i64* @.read_scratch
+6. br label %L2
+
+Before Processing L0:
+
+Block
+L0
+L2
+L3
+L5
+L6
+L7
+L8
+L4
+L1
+
+Live-In
+{}
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{}
+{}
+
+Live-Out
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{r11}
+{}
+{}
+
+After Processing L0:
+
+Virtual Register Live Start
+
+Live End
+
+Virtual Register Live Start
+
+Live End
+
+r11
+
+-1
+
+-1
+
+r11
+
+3
+
+6
+
+r12
+
+-1
+
+6
+
+r12
+
+5
+
+6
+
+a_1
+
+-1
+
+-1
+
+a_1
+
+-1
+
+-1
+
+r3
+
+-1
+
+-1
+
+r3
+
+-1
+
+-1
+
+r6
+
+—1
+
+-1
+
+r6
+
+—1
+
+-1
+
+r9
+
+-1
+
+17
+
+r9
+
+-1
+
+17
+
+MPCS 51300 - Compilers
+
+32
+
+Block L2
+Block
+L0
+L2
+L3
+L5
+L6
+L7
+L8
+L4
+L1
+
+L2:
+7. %a_1 = phi i64 [ %r12, %L0 ], [ %r9, %L8 ]
+8. %r3 = icmp sle i64 %a_1, %r11
+9. br i1 %r3, label %L3, label %L4
+
+Before Processing L2:
+Virtual Register Live Start
+
+r11
+
+Live-In
+{}
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{}
+{}
+
+Live-Out
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{r11}
+{}
+{}
+
+Live End
+
+After Processing L2:
+Virtual Register Live Start
+
+Live End
+
+3
+
+6
+
+r11
+
+3
+
+9
+
+r12
+
+5
+
+6
+
+r12
+
+5
+
+6
+
+a_1
+
+-1
+
+-1
+
+a_1
+
+7
+
+9
+
+r3
+
+-1
+
+-1
+
+r3
+
+8
+
+9
+
+r6
+
+—1
+
+-1
+
+r6
+
+—1
+
+-1
+
+r9
+
+-1
+
+17
+
+r9
+
+-1
+
+17
+
+MPCS 51300 - Compilers
+
+33
+
+Block L3
+Block
+L0
+L2
+L3
+L5
+L6
+L7
+L8
+L4
+L1
+
+L3:
+10. br label %L5
+
+Before Processing L3:
+Virtual Register Live Start
+
+r11
+
+Live-In
+{}
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{}
+{}
+
+Live-Out
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{r11}
+{}
+{}
+
+Live End
+
+After Processing L3:
+Virtual Register Live Start
+
+Live End
+
+3
+
+9
+
+r11
+
+3
+
+10
+
+r12
+
+5
+
+6
+
+r12
+
+5
+
+6
+
+a_1
+
+7
+
+9
+
+a_1
+
+7
+
+10
+
+r3
+
+8
+
+9
+
+r3
+
+8
+
+9
+
+r6
+
+—1
+
+-1
+
+r6
+
+—1
+
+-1
+
+r9
+
+-1
+
+17
+
+r9
+
+-1
+
+17
+
+MPCS 51300 - Compilers
+
+34
+
+Block L5
+
+Block
+L0
+L2
+L3
+L5
+L6
+L7
+L8
+L4
+L1
+
+L5:
+11. %r6 = icmp sgt i64 %a_1, 10
+12. br i1 %r6, label %L6, label %L7
+
+Before Processing L5:
+
+Live-In
+{}
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{}
+{}
+
+Live-Out
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{r11}
+{}
+{}
+
+After Processing L5:
+
+Virtual Register Live Start
+
+Live End
+
+Virtual Register Live Start
+
+Live End
+
+r11
+
+3
+
+10
+
+r11
+
+3
+
+12
+
+r12
+
+5
+
+6
+
+r12
+
+5
+
+6
+
+a_1
+
+7
+
+10
+
+a_1
+
+7
+
+12
+
+r3
+
+8
+
+9
+
+r3
+
+8
+
+9
+
+r6
+
+—1
+
+-1
+
+r6
+
+11
+
+12
+
+r9
+
+-1
+
+17
+
+r9
+
+-1
+
+17
+
+MPCS 51300 - Compilers
+
+35
+
+Block L7
+Block
+Live-In
+L0
+{}
+L2
+{r11}
+L3
+{a1,r11}
+L5
+{a1,r11}
+L6
+{a1,r11}
+L7
+{a1,r11}
+L8
+{a1,r11}
+L4
+{}
+L1
+{}
+After Processing L7:
+
+L7:
+13. br label %L8
+
+Live-Out
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{r11}
+{}
+{}
+
+Before Processing L7:
+Virtual Register Live Start
+
+Live End
+
+Virtual Register Live Start
+
+Live End
+
+r11
+
+3
+
+12
+
+r11
+
+3
+
+13
+
+r12
+
+5
+
+6
+
+r12
+
+5
+
+6
+
+a_1
+
+7
+
+12
+
+a_1
+
+7
+
+13
+
+r3
+
+8
+
+9
+
+r3
+
+8
+
+9
+
+r6
+
+11
+
+12
+
+r6
+
+11
+
+12
+
+r9
+
+-1
+
+17
+
+r9
+
+-1
+
+17
+
+MPCS 51300 - Compilers
+
+36
+
+Block L6
+Block
+L0
+L2
+L3
+L5
+L6
+L7
+L8
+L4
+L1
+
+L6:
+14. call i8 (i8*, ...) @printf(i8* getelementptr inbounds
+([5 x i8], [5 x i8]* @.fstr0, i32 0, i32 0),i64 %a_1)
+15. br label %L8
+
+Before Processing L6:
+Virtual Register Live Start
+
+r11
+
+Live-In
+{}
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{}
+{}
+
+Live-Out
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{r11}
+{}
+{}
+
+Live End
+
+After Processing L6:
+Virtual Register Live Start
+
+Live End
+
+3
+
+13
+
+r11
+
+3
+
+15
+
+r12
+
+5
+
+6
+
+r12
+
+5
+
+6
+
+a_1
+
+7
+
+13
+
+a_1
+
+7
+
+15
+
+r3
+
+8
+
+9
+
+r3
+
+8
+
+9
+
+r6
+
+11
+
+12
+
+r6
+
+11
+
+12
+
+r9
+
+-1
+
+17
+
+r9
+
+-1
+
+17
+
+MPCS 51300 - Compilers
+
+37
+
+Block L8
+Block
+L0
+L2
+L3
+L5
+L6
+L7
+L8
+L4
+L1
+
+L8:
+16. %r9 = add i64 %a_1, 1
+17. br label %L2
+
+Live-In
+{}
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{}
+{}
+
+Live-Out
+{r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{a1,r11}
+{r11}
+{}
+{}
+
+After Processing L8:
+
+Before Processing L8:
+Virtual Register Live Start
+
+Live End
+
+Virtual Register Live Start
+
+Live End
+
+r11
+
+3
+
+15
+
+r11
+
+3
+
+17
+
+r12
+
+5
+
+6
+
+r12
+
+5
+
+6
+
+a_1
+
+7
+
+15
+
+a_1
+
+7
+
+16
+
+r3
+
+8
+
+9
+
+r3
+
+8
+
+9
+
+r6
+
+11
+
+12
+
+r6
+
+11
+
+12
+
+r9
+
+-1
+
+17
+
+r9
+
+16
+
+17
+
+MPCS 51300 - Compilers
+
+38
+
+Final Live Intervals
+• We are done. L4, and L1 will not change the ranges.
+• This is the final output
+
+MPCS 51300 - Compilers
+
+Virtual Register Live Start
+
+Live End
+
+r11
+
+3
+
+17
+
+r12
+
+5
+
+6
+
+a_1
+
+7
+
+16
+
+r3
+
+8
+
+9
+
+r6
+
+11
+
+12
+
+r9
+
+16
+
+17
+
+39
+
+Register Allocation: Linear Scan
+Allocation
+
+40
+
+Register Allocation
+•
+
+LLVM uses an infinite number of registers when
+generating code but when translating too assembly we
+only have a finite number of registers to use; therefore,
+we need to have use a register allocation scheme
+- A process that assigned variables and temporaries to
+registers and manages the transfer of data in and out
+of registers.
+• Two main approaches:
+- Stack Based Model
+- Global Register Allocation
+
+MPCS 51300 - Compilers
+
+41
+
+Global Register Allocation
+• Two popular techniques for global register allocation, which works
+on one (entire) procedure at a time:
+• Linear Scan Allocator: Allocates registers to variables in a single
+linear-time scan
+- Considerably faster than algorithms based on graph coloring
+- Focuses on making compile time faster but could produce a
+poor register allocation.
+- Paper: “Linear Scan Register Allocation” by M. Poletto and V.
+Sarkar.
+- LLVM uses this as one of their allocation schemes
+• Register Allocation via Graph Coloring:
+- The state of the art algorithm for allocation
+- Can take a considerable amount of time if heuristics are not
+chosen correctly.
+MPCS 51300 - Compilers
+
+42
+
+Preparing LLVM Register Based IR for
+Register Allocation
+• In LLVM SSA:
+%x1 = ...
+%x2 = ...
+%x3 = add i64 %x1, %x2
+- Each assignment creates a new version
+- Infinite register names
+- No reuse
+• In ARM64:
+- Only 31 general-purpose registers:
+‣ x0–x30
+- Some reserved:
+‣ x29 = frame pointer
+‣ x30 = link register
+‣ sp = stack pointer
+- We must fit many virtual registers into ~28 usable physical registers.
+MPCS 51300 - Compilers
+
+43
+
+Step 1: Removing Φ-Nodes (Destroying
+SSA also known as Out of SSA)
+• A φ is just a copy inserted along incoming edges.
+B4:
+x3 = φ(x1, x2)
+
+• Insert
+
+B2:
+x3 = x1
+goto B4
+B3:
+x3 = x2
+goto B4
+
+• Then remove φ.
+
+MPCS 51300 - Compilers
+
+44
+
+How to Eliminate Φ-Nodes
+• SSA Example:
+
+if cond:
+x1 = 1
+else:
+x2 = 2
+
+• CFG Form:
+B1
+/ \
+B2 B3
+\ /
+B4
+
+• B4
+- x3 = φ(x1, x2)
+MPCS 51300 - Compilers
+
+45
+
+Critical Edge Problem
+• In a control-flow graph (CFG), An edge A → B is a critical
+edge if:
+- A has multiple successors
+- B has multiple predecessors
+• Formally:
+- |succ(A)| > 1 AND |pred(B)| > 1
+• Why Do We Care?
+- Because when removing φ-nodes, we must insert
+copies on specific edges.
+- If the edge is critical, we have no safe place to put the
+copy without changing semantics.
+MPCS 51300 - Compilers
+
+46
+
+CFG With a Critical Edge
+B1
+
+B3
+
+B2
+
+B5
+
+B4
+
+B6
+
+MPCS 51300 - Compilers
+
+• B1 has 2 successors → (B2,
+B3)
+• B4 has 2 predecessors → (B2,
+B3)
+• Now look at edge: B2 →B4
+- Check: |succ(B2)| > 1 AND
+|pred(B4)| > 1
+- B2 has multiple successors
+(B4, B5)
+- B4 has multiple
+predecessors
+- That edge is critical.
+47
+
+Why φ-Removal Breaks
+B1
+• Suppose we have:
+B4:
+x3 = φ(x1 from B2, x2 from B3)
+• To remove φ, we want:
+In B2:
+x3 = x1
+In B3:
+x3 = x2
+• But here is the problem, If we put:
+B2:
+x3 = x1
+...
+if (...) goto B4 else goto B5
+
+B3
+
+B2
+
+B5
+
+B4
+
+B6
+
+• Error: Now we’ve assigned x3 even if we go to B5. That is WRONG.
+• We only want x3 = x1 executed when going to B4.
+• But B2 has two outgoing edges:
+- B2 → B4
+- B2 → B5
+• We need to place the copy only on the B2 → B4 path.
+• But there is no location that belongs exclusively to that edge. That is the core problem.
+MPCS 51300 - Compilers
+
+48
+
+Critical Edge Solution: Split the Critical
+Edge
+•
+•
+•
+•
+
+We create a new block.
+Transform: B2 → B4
+Into: B2 → B2_4 → B4
+Now we have:
+• B2_4 has exactly 1 predecessor
+• B2_4 has exactly 1 successor
+• It belongs purely to that edge.
+• Now we can safely insert:
+B2_4:
+x3 = x1
+goto B4
+MPCS 51300 - Compilers
+
+49
+
+B1
+
+B3
+
+B2
+
+B5
+
+B2_4
+
+B4
+
+B6
+
+After Φ Removal
+• Now we have:
+- Normal assignments only
+- No φ instructions
+- Still infinite virtual registers
+• Now we can do:
+- Register Allocation
+
+MPCS 51300 - Compilers
+
+50
+
+Linear Scan Register Allocation
+(Step 1: Compute Live Intervals)
+Even though SSA guarantees each virtual register is defined only once, you still
+need to determine where each value is "alive." You do this by:
+• A) Make sure your SSA is in Out-of-SSA form:
+- Insert Pseudo-LLVM Move Instruction ( e.g. mov %op_reg,
+%dest_reg). You need to define this instruction.
+- For each PHI operand, insert a pseudo LLVM move at the end of its
+corresponding predecessor block. This move transfers the value
+from the PHI’s operand’s assigned physical register to the physical
+register designated for the Phi’s destination register, effectively
+converting the IR out of SSA form. Make sure to consider the critical
+edge special case.
+• After updating, the LLVM IR will no longer be valid LLVM IR!
+• C) Perform Liveness Analysis: Compute live ranges for each virtual
+register
+- Live Range Start: The position where a virtual register is defined.
+- Live Range End: The position of its last use across all blocks.
+MPCS 51300 - Compilers
+
+51
+
+Linear Scan Register Allocation
+(Step 2: Perform Linear Scan)
+Once you have live intervals for each SSA register, you perform the linear
+scan allocation:
+• A) Sort Intervals:
+- Arrange the live intervals in increasing order of their start points.
+• B) Keep an active set, which is the set of virtual registers currently
+assigned to a physical register. As you iterate through the intervals:
+- Expire Old Intervals: Remove intervals from the active set that
+have ended (i.e., their end point is before the current interval’s
+start).
+- Assign a Register:
+‣ If a free register is available, assign it to the current interval.
+‣ If not, decide which interval to spill (often the one with the
+farthest end point) or split the current interval if beneficial.
+Just choose the current register to spill as the easiest method.
+MPCS 51300 - Compilers
+
+52
+
+Determining number of Registers
+• How many physical registers do you have? It depends on the
+target architecture.
+- The amount you have available is all registers minus
+the reserved registers for the architecture.
+- ARM64 has at least 7 reserved registers: {x29, x30,
+sp, SPILL_REG1, SPILL_REG2, x16, x17, x18}, where
+SPILL_REG1 and SPILL_RE21 is discussed below.
+• Spilling code involves going back to the stack-based
+representation where you need loads/stores directly to the
+stack.
+- You need at least two physical register to be dedicated to
+spilling registers. For ARM64, I recommend you reserve
+SPILL_REG{1,2} = x9,x10.
+MPCS 51300 - Compilers
+
+53
+
+Original Source
+
+func main() {
+var limit, a int;
+scan limit;
+scan a;
+for (a <= limit) {
+if (a > 10) {
+printf("%d\n",a);
+}
+a = a + 1;
+}
+}
+
+fi
+
+MPCS 51300 - Compilers
+
+de ne i64 @main()
+LLVM Register-Based
+{
+L0:
+call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.read, i32
+@.read_scratch)
+%r11 = load i64, i64* @.read_scratch
+call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.read, i32
+@.read_scratch)
+%r12 = load i64, i64* @.read_scratch
+br label %L2
+L2:
+%a_1 = phi i64 [ %r12, %L0 ], [ %r9, %L8 ]
+%r3 = icmp sle i64 %a_1, %r11
+br i1 %r3, label %L3, label %L4
+L3:
+br label %L5
+L5:
+%r6 = icmp sgt i64 %a_1, 10
+br i1 %r6, label %L6, label %L7
+L7:
+br label %L8
+L6:
+call i8 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.fstr0, i32
+br label %L8
+L8:
+%r9 = add i64 %a_1, 1
+br label %L2
+L4:
+br label %L1
+L1:
+ret i64 0
+54
+}
+
+de ne i64 @main()
+{
+L0:
+call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4
+x i8]* @.read, i32 0, i32 0),i64* @.read_scratch)
+%r11 = load i64, i64* @.read_scratch
+call i8 (i8*, ...) @scanf(i8* getelementptr inbounds ([4 x i8], [4
+x i8]* @.read, i32 0, i32 0),i64* @.read_scratch)
+%r12 = load i64, i64* @.read_scratch
+br label %L2
+L2:
+%a_1 = phi i64 [ %r12, %L0 ], [ %r9, %L8 ]
+%r3 = icmp sle i64 %a_1, %r11
+br i1 %r3, label %L3, label %L4
+L3:
+br label %L5
+L5:
+%r6 = icmp sgt i64 %a_1, 10
+br i1 %r6, label %L6, label %L7
+L7:
+br label %L8
+L6:
+call i8 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5
+x i8]* @.fstr0, i32 0, i32 0),i64 %a_1)
+br label %L8
+L8:
+%r9 = add i64 %a_1, 1
+br label %L2
+….
+
+fi
+
+fi
+
+MPCS 51300 - Compilers
+
+55
+
+de ne i64 @main()
+{
+L0: Step 1a:Out-of-SSA
+call i8 (i8*, ...) @scanf(i8* getelementptr
+inbounds ([4 x i8], [4 x i8]* @.read, i32 0, i32
+0),i64* @.read_scratch)
+%r11 = load i64, i64* @.read_scratch
+call i8 (i8*, ...) @scanf(i8* getelementptr
+inbounds ([4 x i8], [4 x i8]* @.read, i32 0, i32
+0),i64* @.read_scratch)
+%r12 = load i64, i64* @.read_scratch
+%a_1 = %r12
+br label %L2
+L2:
+%r3 = icmp sle i64 %a_1, %r11
+br i1 %r3, label %L3, label %L4
+L3:
+br label %L5
+L5:
+%r6 = icmp sgt i64 %a_1, 10
+br i1 %r6, label %L6, label %L7
+L7:
+br label %L8
+L6:
+call i8 (i8*, ...) @printf(i8* getelementptr
+inbounds ([5 x i8], [5 x i8]* @.fstr0, i32 0, i32
+0),i64 %a_1)
+br label %L8
+L8:
+%r9 = add i64 %a_1, 1
+%a_1 = %r9
+br label %L2
+…
+
+fi
+
+de ne i64 @main()
+Step 1a:Out-of-SSA
+{
+L0:
+call i8 (i8*, ...) @scanf(i8* getelementptr
+inbounds ([4 x i8], [4 x i8]* @.read, i32 0, i32
+0),i64* @.read_scratch)
+%r11 = load i64, i64* @.read_scratch
+call i8 (i8*, ...) @scanf(i8* getelementptr
+inbounds ([4 x i8], [4 x i8]* @.read, i32 0, i32
+0),i64* @.read_scratch)
+%r12 = load i64, i64* @.read_scratch
+%a_1 = %r12
+br label %L2
+L2:
+%r3 = icmp sle i64 %a_1, %r11
+br i1 %r3, label %L3, label %L4
+L3:
+br label %L5
+L5:
+%r6 = icmp sgt i64 %a_1, 10
+br i1 %r6, label %L6, label %L7
+L7:
+br label %L8
+L6:
+call i8 (i8*, ...) @printf(i8* getelementptr
+inbounds ([5 x i8], [5 x i8]* @.fstr0, i32 0, i32
+0),i64 %a_1)
+br label %L8
+L8:
+%r9 = add i64 %a_1, 1
+%a_1 = %r9
+br
+label 51300
+%L2 - Compilers
+MPCS
+…
+
+Step 2a: Perform liveness Analysis:
+Sort Live Ranges
+
+56
+
+Virtual Register Live Start
+
+Live End
+
+r11
+
+3
+
+17
+
+r12
+
+5
+
+6
+
+a_1
+
+7
+
+16
+
+r3
+
+8
+
+9
+
+r6
+
+11
+
+12
+
+r9
+
+16
+
+17
+
+Step 2b: Perform Linear Scan
+Assume we only have two physical registers: x0, x1
+
+Virtual Register Live Start
+
+Live End Allocation
+Location
+
+r11
+
+3
+
+17
+
+r12
+
+5
+
+6
+
+a_1
+
+7
+
+16
+
+r3
+
+8
+
+9
+
+r6
+
+11
+
+12
+
+r9
+
+16
+
+17
+
+MPCS 51300 - Compilers
+
+Current Start Interval = 0
+
+Active Set = {}
+
+57
+
+Step 2b: Perform Linear Scan
+Assume we only have two physical registers: x0, x1
+
+Virtual Register Live Start
+
+Live End Allocation
+Location
+
+Current Start Interval = 3
+
+r11
+
+3
+
+17
+
+r12
+
+5
+
+6
+
+a_1
+
+7
+
+16
+
+r3
+
+8
+
+9
+
+r6
+
+11
+
+12
+
+After:
+
+r9
+
+16
+
+17
+
+Active Set = {(x0,r11)}
+
+MPCS 51300 - Compilers
+
+x0
+Before:
+Active Set = {}
+
+58
+
+Step 2b: Perform Linear Scan
+Assume we only have two physical registers: x0, x1
+
+Virtual Register Live Start
+
+Live End Allocation
+Location
+
+r11
+
+3
+
+17
+
+x0
+
+r12
+
+5
+
+6
+
+x1
+
+a_1
+
+7
+
+16
+
+r3
+
+8
+
+9
+
+r6
+
+11
+
+12
+
+r9
+
+16
+
+17
+
+MPCS 51300 - Compilers
+
+Current Start Interval = 5
+
+Before:
+Active Set = {(x0,r11)}
+After:
+Active Set = {(x0,r11), (x1,r12)}
+
+59
+
+Step 2b: Perform Linear Scan
+Assume we only have two physical registers: x0, x1
+
+Virtual Register Live Start
+
+Live End Allocation
+Location
+
+r11
+
+3
+
+17
+
+x0
+
+r12
+
+5
+
+6
+
+x1
+
+a_1
+
+7
+
+16
+
+x1
+
+r3
+
+8
+
+9
+
+r6
+
+11
+
+12
+
+r9
+
+16
+
+17
+
+MPCS 51300 - Compilers
+
+Current Start Interval = 7
+
+Before:
+Active Set = {(x0,r11), (x1,r12)}
+After:
+Active Set = {(x0,r11), (x1,a_1)}
+
+60
+
+Step 2b: Perform Linear Scan
+Assume we only have two physical registers: x0, x1
+
+Virtual Register Live Start
+
+Live End Allocation
+Location
+
+r11
+
+3
+
+17
+
+x0
+
+r12
+
+5
+
+6
+
+x1
+
+a_1
+
+7
+
+16
+
+x1
+
+r3
+
+8
+
+9
+
+spill
+
+r6
+
+11
+
+12
+
+r9
+
+16
+
+17
+
+MPCS 51300 - Compilers
+
+Current Start Interval = 8
+
+Before:
+Active Set = {(x0,r11), (x1,a_1)}
+After:
+Active Set = {(x0,r11), (x1,r12)}
+
+61
+
+Step 2b: Perform Linear Scan
+Assume we only have two physical registers: x0, x1
+
+Virtual Register Live Start
+
+Live End Allocation
+Location
+
+r11
+
+3
+
+17
+
+x0
+
+r12
+
+5
+
+6
+
+x1
+
+a_1
+
+7
+
+16
+
+x1
+
+r3
+
+8
+
+9
+
+spill
+
+r6
+
+11
+
+12
+
+spill
+
+r9
+
+16
+
+17
+
+MPCS 51300 - Compilers
+
+Current Start Interval = 11
+
+Before:
+Active Set = {(x0,r11), (x1,a_1)}
+After:
+Active Set = {(x0,r11), (x1,a_1)}
+
+62
+
+Step 2b: Perform Linear Scan
+Assume we only have two physical registers: x0, x1
+
+Virtual Register Live Start
+
+Live End Allocation
+Location
+
+r11
+
+3
+
+17
+
+x0
+
+r12
+
+5
+
+6
+
+x1
+
+a_1
+
+7
+
+16
+
+x1
+
+r3
+
+8
+
+9
+
+spill
+
+r6
+
+11
+
+12
+
+spill
+
+r9
+
+16
+
+17
+
+spill
+
+MPCS 51300 - Compilers
+
+Current Start Interval = 16
+
+Before:
+Active Set = {(x0,r11), (x1,a_1)}
+After:
+Active Set = {(x0,r11), (x1,a_1)}
+
+63
+
+

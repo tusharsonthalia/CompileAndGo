@@ -1,0 +1,7 @@
+type S struct { a int; };
+func main() {
+    var s *S;
+    var i int;
+    s = nil;
+    i = nil;
+}

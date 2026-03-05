@@ -1,0 +1,269 @@
+// Code generated from GoliteLexer.g4 by ANTLR 4.13.2. DO NOT EDIT.
+
+package lexer
+
+import (
+	"fmt"
+	"github.com/antlr4-go/antlr/v4"
+	"sync"
+	"unicode"
+)
+
+// Suppress unused import error
+var _ = fmt.Printf
+var _ = sync.Once{}
+var _ = unicode.IsLetter
+
+type GoliteLexer struct {
+	*antlr.BaseLexer
+	channelNames []string
+	modeNames    []string
+	// TODO: EOF string
+}
+
+var GoliteLexerLexerStaticData struct {
+	once                   sync.Once
+	serializedATN          []int32
+	ChannelNames           []string
+	ModeNames              []string
+	LiteralNames           []string
+	SymbolicNames          []string
+	RuleNames              []string
+	PredictionContextCache *antlr.PredictionContextCache
+	atn                    *antlr.ATN
+	decisionToDFA          []*antlr.DFA
+}
+
+func golitelexerLexerInit() {
+	staticData := &GoliteLexerLexerStaticData
+	staticData.ChannelNames = []string{
+		"DEFAULT_TOKEN_CHANNEL", "HIDDEN",
+	}
+	staticData.ModeNames = []string{
+		"DEFAULT_MODE",
+	}
+	staticData.LiteralNames = []string{
+		"", "", "'type'", "'struct'", "'func'", "'printf'", "'delete'", "'scan'",
+		"'for'", "'if'", "'else'", "'return'", "'var'", "'int'", "'bool'", "'true'",
+		"'false'", "'nil'", "'new'", "'||'", "'&&'", "'=='", "'!='", "'>='",
+		"'<='", "'{'", "'}'", "'('", "')'", "';'", "','", "'.'", "'!'", "'/'",
+		"'*'", "'+'", "'-'", "'>'", "'<'", "'='",
+	}
+	staticData.SymbolicNames = []string{
+		"", "COMMENT", "TYPE", "STRUCT", "FUNCTION", "PRINT", "DELETE", "SCAN",
+		"FOR", "IF", "ELSE", "RETURN", "VAR", "INT", "BOOL", "TRUE", "FALSE",
+		"NIL", "NEW", "OR", "AND", "DOUBLEEQ", "NEQ", "GEQ", "LEQ", "LBRACE",
+		"RBRACE", "LPAREN", "RPAREN", "SEMICOLON", "COMMA", "DOT", "EXCLAMATION",
+		"FSLASH", "ASTERISK", "PLUS", "MINUS", "GT", "LT", "EQUALS", "IDENTIFIER",
+		"NUMBER", "STRING", "WS",
+	}
+	staticData.RuleNames = []string{
+		"COMMENT", "TYPE", "STRUCT", "FUNCTION", "PRINT", "DELETE", "SCAN",
+		"FOR", "IF", "ELSE", "RETURN", "VAR", "INT", "BOOL", "TRUE", "FALSE",
+		"NIL", "NEW", "OR", "AND", "DOUBLEEQ", "NEQ", "GEQ", "LEQ", "LBRACE",
+		"RBRACE", "LPAREN", "RPAREN", "SEMICOLON", "COMMA", "DOT", "EXCLAMATION",
+		"FSLASH", "ASTERISK", "PLUS", "MINUS", "GT", "LT", "EQUALS", "IDENTIFIER",
+		"NUMBER", "STRING", "WS",
+	}
+	staticData.PredictionContextCache = antlr.NewPredictionContextCache()
+	staticData.serializedATN = []int32{
+		4, 0, 43, 268, 6, -1, 2, 0, 7, 0, 2, 1, 7, 1, 2, 2, 7, 2, 2, 3, 7, 3, 2,
+		4, 7, 4, 2, 5, 7, 5, 2, 6, 7, 6, 2, 7, 7, 7, 2, 8, 7, 8, 2, 9, 7, 9, 2,
+		10, 7, 10, 2, 11, 7, 11, 2, 12, 7, 12, 2, 13, 7, 13, 2, 14, 7, 14, 2, 15,
+		7, 15, 2, 16, 7, 16, 2, 17, 7, 17, 2, 18, 7, 18, 2, 19, 7, 19, 2, 20, 7,
+		20, 2, 21, 7, 21, 2, 22, 7, 22, 2, 23, 7, 23, 2, 24, 7, 24, 2, 25, 7, 25,
+		2, 26, 7, 26, 2, 27, 7, 27, 2, 28, 7, 28, 2, 29, 7, 29, 2, 30, 7, 30, 2,
+		31, 7, 31, 2, 32, 7, 32, 2, 33, 7, 33, 2, 34, 7, 34, 2, 35, 7, 35, 2, 36,
+		7, 36, 2, 37, 7, 37, 2, 38, 7, 38, 2, 39, 7, 39, 2, 40, 7, 40, 2, 41, 7,
+		41, 2, 42, 7, 42, 1, 0, 1, 0, 1, 0, 1, 0, 5, 0, 92, 8, 0, 10, 0, 12, 0,
+		95, 9, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 2, 1, 2, 1,
+		2, 1, 2, 1, 2, 1, 2, 1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1, 4, 1, 4, 1, 4, 1,
+		4, 1, 4, 1, 4, 1, 4, 1, 5, 1, 5, 1, 5, 1, 5, 1, 5, 1, 5, 1, 5, 1, 6, 1,
+		6, 1, 6, 1, 6, 1, 6, 1, 7, 1, 7, 1, 7, 1, 7, 1, 8, 1, 8, 1, 8, 1, 9, 1,
+		9, 1, 9, 1, 9, 1, 9, 1, 10, 1, 10, 1, 10, 1, 10, 1, 10, 1, 10, 1, 10, 1,
+		11, 1, 11, 1, 11, 1, 11, 1, 12, 1, 12, 1, 12, 1, 12, 1, 13, 1, 13, 1, 13,
+		1, 13, 1, 13, 1, 14, 1, 14, 1, 14, 1, 14, 1, 14, 1, 15, 1, 15, 1, 15, 1,
+		15, 1, 15, 1, 15, 1, 16, 1, 16, 1, 16, 1, 16, 1, 17, 1, 17, 1, 17, 1, 17,
+		1, 18, 1, 18, 1, 18, 1, 19, 1, 19, 1, 19, 1, 20, 1, 20, 1, 20, 1, 21, 1,
+		21, 1, 21, 1, 22, 1, 22, 1, 22, 1, 23, 1, 23, 1, 23, 1, 24, 1, 24, 1, 25,
+		1, 25, 1, 26, 1, 26, 1, 27, 1, 27, 1, 28, 1, 28, 1, 29, 1, 29, 1, 30, 1,
+		30, 1, 31, 1, 31, 1, 32, 1, 32, 1, 33, 1, 33, 1, 34, 1, 34, 1, 35, 1, 35,
+		1, 36, 1, 36, 1, 37, 1, 37, 1, 38, 1, 38, 1, 39, 1, 39, 5, 39, 236, 8,
+		39, 10, 39, 12, 39, 239, 9, 39, 1, 40, 1, 40, 1, 40, 5, 40, 244, 8, 40,
+		10, 40, 12, 40, 247, 9, 40, 3, 40, 249, 8, 40, 1, 41, 1, 41, 1, 41, 1,
+		41, 5, 41, 255, 8, 41, 10, 41, 12, 41, 258, 9, 41, 1, 41, 1, 41, 1, 42,
+		4, 42, 263, 8, 42, 11, 42, 12, 42, 264, 1, 42, 1, 42, 0, 0, 43, 1, 1, 3,
+		2, 5, 3, 7, 4, 9, 5, 11, 6, 13, 7, 15, 8, 17, 9, 19, 10, 21, 11, 23, 12,
+		25, 13, 27, 14, 29, 15, 31, 16, 33, 17, 35, 18, 37, 19, 39, 20, 41, 21,
+		43, 22, 45, 23, 47, 24, 49, 25, 51, 26, 53, 27, 55, 28, 57, 29, 59, 30,
+		61, 31, 63, 32, 65, 33, 67, 34, 69, 35, 71, 36, 73, 37, 75, 38, 77, 39,
+		79, 40, 81, 41, 83, 42, 85, 43, 1, 0, 7, 2, 0, 10, 10, 13, 13, 2, 0, 65,
+		90, 97, 122, 3, 0, 48, 57, 65, 90, 97, 122, 1, 0, 49, 57, 1, 0, 48, 57,
+		4, 0, 10, 10, 13, 13, 34, 34, 92, 92, 3, 0, 9, 10, 13, 13, 32, 32, 274,
+		0, 1, 1, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0, 5, 1, 0, 0, 0, 0, 7, 1, 0, 0, 0,
+		0, 9, 1, 0, 0, 0, 0, 11, 1, 0, 0, 0, 0, 13, 1, 0, 0, 0, 0, 15, 1, 0, 0,
+		0, 0, 17, 1, 0, 0, 0, 0, 19, 1, 0, 0, 0, 0, 21, 1, 0, 0, 0, 0, 23, 1, 0,
+		0, 0, 0, 25, 1, 0, 0, 0, 0, 27, 1, 0, 0, 0, 0, 29, 1, 0, 0, 0, 0, 31, 1,
+		0, 0, 0, 0, 33, 1, 0, 0, 0, 0, 35, 1, 0, 0, 0, 0, 37, 1, 0, 0, 0, 0, 39,
+		1, 0, 0, 0, 0, 41, 1, 0, 0, 0, 0, 43, 1, 0, 0, 0, 0, 45, 1, 0, 0, 0, 0,
+		47, 1, 0, 0, 0, 0, 49, 1, 0, 0, 0, 0, 51, 1, 0, 0, 0, 0, 53, 1, 0, 0, 0,
+		0, 55, 1, 0, 0, 0, 0, 57, 1, 0, 0, 0, 0, 59, 1, 0, 0, 0, 0, 61, 1, 0, 0,
+		0, 0, 63, 1, 0, 0, 0, 0, 65, 1, 0, 0, 0, 0, 67, 1, 0, 0, 0, 0, 69, 1, 0,
+		0, 0, 0, 71, 1, 0, 0, 0, 0, 73, 1, 0, 0, 0, 0, 75, 1, 0, 0, 0, 0, 77, 1,
+		0, 0, 0, 0, 79, 1, 0, 0, 0, 0, 81, 1, 0, 0, 0, 0, 83, 1, 0, 0, 0, 0, 85,
+		1, 0, 0, 0, 1, 87, 1, 0, 0, 0, 3, 98, 1, 0, 0, 0, 5, 103, 1, 0, 0, 0, 7,
+		110, 1, 0, 0, 0, 9, 115, 1, 0, 0, 0, 11, 122, 1, 0, 0, 0, 13, 129, 1, 0,
+		0, 0, 15, 134, 1, 0, 0, 0, 17, 138, 1, 0, 0, 0, 19, 141, 1, 0, 0, 0, 21,
+		146, 1, 0, 0, 0, 23, 153, 1, 0, 0, 0, 25, 157, 1, 0, 0, 0, 27, 161, 1,
+		0, 0, 0, 29, 166, 1, 0, 0, 0, 31, 171, 1, 0, 0, 0, 33, 177, 1, 0, 0, 0,
+		35, 181, 1, 0, 0, 0, 37, 185, 1, 0, 0, 0, 39, 188, 1, 0, 0, 0, 41, 191,
+		1, 0, 0, 0, 43, 194, 1, 0, 0, 0, 45, 197, 1, 0, 0, 0, 47, 200, 1, 0, 0,
+		0, 49, 203, 1, 0, 0, 0, 51, 205, 1, 0, 0, 0, 53, 207, 1, 0, 0, 0, 55, 209,
+		1, 0, 0, 0, 57, 211, 1, 0, 0, 0, 59, 213, 1, 0, 0, 0, 61, 215, 1, 0, 0,
+		0, 63, 217, 1, 0, 0, 0, 65, 219, 1, 0, 0, 0, 67, 221, 1, 0, 0, 0, 69, 223,
+		1, 0, 0, 0, 71, 225, 1, 0, 0, 0, 73, 227, 1, 0, 0, 0, 75, 229, 1, 0, 0,
+		0, 77, 231, 1, 0, 0, 0, 79, 233, 1, 0, 0, 0, 81, 248, 1, 0, 0, 0, 83, 250,
+		1, 0, 0, 0, 85, 262, 1, 0, 0, 0, 87, 88, 5, 47, 0, 0, 88, 89, 5, 47, 0,
+		0, 89, 93, 1, 0, 0, 0, 90, 92, 8, 0, 0, 0, 91, 90, 1, 0, 0, 0, 92, 95,
+		1, 0, 0, 0, 93, 91, 1, 0, 0, 0, 93, 94, 1, 0, 0, 0, 94, 96, 1, 0, 0, 0,
+		95, 93, 1, 0, 0, 0, 96, 97, 6, 0, 0, 0, 97, 2, 1, 0, 0, 0, 98, 99, 5, 116,
+		0, 0, 99, 100, 5, 121, 0, 0, 100, 101, 5, 112, 0, 0, 101, 102, 5, 101,
+		0, 0, 102, 4, 1, 0, 0, 0, 103, 104, 5, 115, 0, 0, 104, 105, 5, 116, 0,
+		0, 105, 106, 5, 114, 0, 0, 106, 107, 5, 117, 0, 0, 107, 108, 5, 99, 0,
+		0, 108, 109, 5, 116, 0, 0, 109, 6, 1, 0, 0, 0, 110, 111, 5, 102, 0, 0,
+		111, 112, 5, 117, 0, 0, 112, 113, 5, 110, 0, 0, 113, 114, 5, 99, 0, 0,
+		114, 8, 1, 0, 0, 0, 115, 116, 5, 112, 0, 0, 116, 117, 5, 114, 0, 0, 117,
+		118, 5, 105, 0, 0, 118, 119, 5, 110, 0, 0, 119, 120, 5, 116, 0, 0, 120,
+		121, 5, 102, 0, 0, 121, 10, 1, 0, 0, 0, 122, 123, 5, 100, 0, 0, 123, 124,
+		5, 101, 0, 0, 124, 125, 5, 108, 0, 0, 125, 126, 5, 101, 0, 0, 126, 127,
+		5, 116, 0, 0, 127, 128, 5, 101, 0, 0, 128, 12, 1, 0, 0, 0, 129, 130, 5,
+		115, 0, 0, 130, 131, 5, 99, 0, 0, 131, 132, 5, 97, 0, 0, 132, 133, 5, 110,
+		0, 0, 133, 14, 1, 0, 0, 0, 134, 135, 5, 102, 0, 0, 135, 136, 5, 111, 0,
+		0, 136, 137, 5, 114, 0, 0, 137, 16, 1, 0, 0, 0, 138, 139, 5, 105, 0, 0,
+		139, 140, 5, 102, 0, 0, 140, 18, 1, 0, 0, 0, 141, 142, 5, 101, 0, 0, 142,
+		143, 5, 108, 0, 0, 143, 144, 5, 115, 0, 0, 144, 145, 5, 101, 0, 0, 145,
+		20, 1, 0, 0, 0, 146, 147, 5, 114, 0, 0, 147, 148, 5, 101, 0, 0, 148, 149,
+		5, 116, 0, 0, 149, 150, 5, 117, 0, 0, 150, 151, 5, 114, 0, 0, 151, 152,
+		5, 110, 0, 0, 152, 22, 1, 0, 0, 0, 153, 154, 5, 118, 0, 0, 154, 155, 5,
+		97, 0, 0, 155, 156, 5, 114, 0, 0, 156, 24, 1, 0, 0, 0, 157, 158, 5, 105,
+		0, 0, 158, 159, 5, 110, 0, 0, 159, 160, 5, 116, 0, 0, 160, 26, 1, 0, 0,
+		0, 161, 162, 5, 98, 0, 0, 162, 163, 5, 111, 0, 0, 163, 164, 5, 111, 0,
+		0, 164, 165, 5, 108, 0, 0, 165, 28, 1, 0, 0, 0, 166, 167, 5, 116, 0, 0,
+		167, 168, 5, 114, 0, 0, 168, 169, 5, 117, 0, 0, 169, 170, 5, 101, 0, 0,
+		170, 30, 1, 0, 0, 0, 171, 172, 5, 102, 0, 0, 172, 173, 5, 97, 0, 0, 173,
+		174, 5, 108, 0, 0, 174, 175, 5, 115, 0, 0, 175, 176, 5, 101, 0, 0, 176,
+		32, 1, 0, 0, 0, 177, 178, 5, 110, 0, 0, 178, 179, 5, 105, 0, 0, 179, 180,
+		5, 108, 0, 0, 180, 34, 1, 0, 0, 0, 181, 182, 5, 110, 0, 0, 182, 183, 5,
+		101, 0, 0, 183, 184, 5, 119, 0, 0, 184, 36, 1, 0, 0, 0, 185, 186, 5, 124,
+		0, 0, 186, 187, 5, 124, 0, 0, 187, 38, 1, 0, 0, 0, 188, 189, 5, 38, 0,
+		0, 189, 190, 5, 38, 0, 0, 190, 40, 1, 0, 0, 0, 191, 192, 5, 61, 0, 0, 192,
+		193, 5, 61, 0, 0, 193, 42, 1, 0, 0, 0, 194, 195, 5, 33, 0, 0, 195, 196,
+		5, 61, 0, 0, 196, 44, 1, 0, 0, 0, 197, 198, 5, 62, 0, 0, 198, 199, 5, 61,
+		0, 0, 199, 46, 1, 0, 0, 0, 200, 201, 5, 60, 0, 0, 201, 202, 5, 61, 0, 0,
+		202, 48, 1, 0, 0, 0, 203, 204, 5, 123, 0, 0, 204, 50, 1, 0, 0, 0, 205,
+		206, 5, 125, 0, 0, 206, 52, 1, 0, 0, 0, 207, 208, 5, 40, 0, 0, 208, 54,
+		1, 0, 0, 0, 209, 210, 5, 41, 0, 0, 210, 56, 1, 0, 0, 0, 211, 212, 5, 59,
+		0, 0, 212, 58, 1, 0, 0, 0, 213, 214, 5, 44, 0, 0, 214, 60, 1, 0, 0, 0,
+		215, 216, 5, 46, 0, 0, 216, 62, 1, 0, 0, 0, 217, 218, 5, 33, 0, 0, 218,
+		64, 1, 0, 0, 0, 219, 220, 5, 47, 0, 0, 220, 66, 1, 0, 0, 0, 221, 222, 5,
+		42, 0, 0, 222, 68, 1, 0, 0, 0, 223, 224, 5, 43, 0, 0, 224, 70, 1, 0, 0,
+		0, 225, 226, 5, 45, 0, 0, 226, 72, 1, 0, 0, 0, 227, 228, 5, 62, 0, 0, 228,
+		74, 1, 0, 0, 0, 229, 230, 5, 60, 0, 0, 230, 76, 1, 0, 0, 0, 231, 232, 5,
+		61, 0, 0, 232, 78, 1, 0, 0, 0, 233, 237, 7, 1, 0, 0, 234, 236, 7, 2, 0,
+		0, 235, 234, 1, 0, 0, 0, 236, 239, 1, 0, 0, 0, 237, 235, 1, 0, 0, 0, 237,
+		238, 1, 0, 0, 0, 238, 80, 1, 0, 0, 0, 239, 237, 1, 0, 0, 0, 240, 249, 5,
+		48, 0, 0, 241, 245, 7, 3, 0, 0, 242, 244, 7, 4, 0, 0, 243, 242, 1, 0, 0,
+		0, 244, 247, 1, 0, 0, 0, 245, 243, 1, 0, 0, 0, 245, 246, 1, 0, 0, 0, 246,
+		249, 1, 0, 0, 0, 247, 245, 1, 0, 0, 0, 248, 240, 1, 0, 0, 0, 248, 241,
+		1, 0, 0, 0, 249, 82, 1, 0, 0, 0, 250, 256, 5, 34, 0, 0, 251, 255, 8, 5,
+		0, 0, 252, 253, 5, 92, 0, 0, 253, 255, 9, 0, 0, 0, 254, 251, 1, 0, 0, 0,
+		254, 252, 1, 0, 0, 0, 255, 258, 1, 0, 0, 0, 256, 254, 1, 0, 0, 0, 256,
+		257, 1, 0, 0, 0, 257, 259, 1, 0, 0, 0, 258, 256, 1, 0, 0, 0, 259, 260,
+		5, 34, 0, 0, 260, 84, 1, 0, 0, 0, 261, 263, 7, 6, 0, 0, 262, 261, 1, 0,
+		0, 0, 263, 264, 1, 0, 0, 0, 264, 262, 1, 0, 0, 0, 264, 265, 1, 0, 0, 0,
+		265, 266, 1, 0, 0, 0, 266, 267, 6, 42, 0, 0, 267, 86, 1, 0, 0, 0, 8, 0,
+		93, 237, 245, 248, 254, 256, 264, 1, 6, 0, 0,
+	}
+	deserializer := antlr.NewATNDeserializer(nil)
+	staticData.atn = deserializer.Deserialize(staticData.serializedATN)
+	atn := staticData.atn
+	staticData.decisionToDFA = make([]*antlr.DFA, len(atn.DecisionToState))
+	decisionToDFA := staticData.decisionToDFA
+	for index, state := range atn.DecisionToState {
+		decisionToDFA[index] = antlr.NewDFA(state, index)
+	}
+}
+
+// GoliteLexerInit initializes any static state used to implement GoliteLexer. By default the
+// static state used to implement the lexer is lazily initialized during the first call to
+// NewGoliteLexer(). You can call this function if you wish to initialize the static state ahead
+// of time.
+func GoliteLexerInit() {
+	staticData := &GoliteLexerLexerStaticData
+	staticData.once.Do(golitelexerLexerInit)
+}
+
+// NewGoliteLexer produces a new lexer instance for the optional input antlr.CharStream.
+func NewGoliteLexer(input antlr.CharStream) *GoliteLexer {
+	GoliteLexerInit()
+	l := new(GoliteLexer)
+	l.BaseLexer = antlr.NewBaseLexer(input)
+	staticData := &GoliteLexerLexerStaticData
+	l.Interpreter = antlr.NewLexerATNSimulator(l, staticData.atn, staticData.decisionToDFA, staticData.PredictionContextCache)
+	l.channelNames = staticData.ChannelNames
+	l.modeNames = staticData.ModeNames
+	l.RuleNames = staticData.RuleNames
+	l.LiteralNames = staticData.LiteralNames
+	l.SymbolicNames = staticData.SymbolicNames
+	l.GrammarFileName = "GoliteLexer.g4"
+	// TODO: l.EOF = antlr.TokenEOF
+
+	return l
+}
+
+// GoliteLexer tokens.
+const (
+	GoliteLexerCOMMENT     = 1
+	GoliteLexerTYPE        = 2
+	GoliteLexerSTRUCT      = 3
+	GoliteLexerFUNCTION    = 4
+	GoliteLexerPRINT       = 5
+	GoliteLexerDELETE      = 6
+	GoliteLexerSCAN        = 7
+	GoliteLexerFOR         = 8
+	GoliteLexerIF          = 9
+	GoliteLexerELSE        = 10
+	GoliteLexerRETURN      = 11
+	GoliteLexerVAR         = 12
+	GoliteLexerINT         = 13
+	GoliteLexerBOOL        = 14
+	GoliteLexerTRUE        = 15
+	GoliteLexerFALSE       = 16
+	GoliteLexerNIL         = 17
+	GoliteLexerNEW         = 18
+	GoliteLexerOR          = 19
+	GoliteLexerAND         = 20
+	GoliteLexerDOUBLEEQ    = 21
+	GoliteLexerNEQ         = 22
+	GoliteLexerGEQ         = 23
+	GoliteLexerLEQ         = 24
+	GoliteLexerLBRACE      = 25
+	GoliteLexerRBRACE      = 26
+	GoliteLexerLPAREN      = 27
+	GoliteLexerRPAREN      = 28
+	GoliteLexerSEMICOLON   = 29
+	GoliteLexerCOMMA       = 30
+	GoliteLexerDOT         = 31
+	GoliteLexerEXCLAMATION = 32
+	GoliteLexerFSLASH      = 33
+	GoliteLexerASTERISK    = 34
+	GoliteLexerPLUS        = 35
+	GoliteLexerMINUS       = 36
+	GoliteLexerGT          = 37
+	GoliteLexerLT          = 38
+	GoliteLexerEQUALS      = 39
+	GoliteLexerIDENTIFIER  = 40
+	GoliteLexerNUMBER      = 41
+	GoliteLexerSTRING      = 42
+	GoliteLexerWS          = 43
+)
