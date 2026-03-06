@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+// visitExpression is the main dispatch for lowering AST expressions to IR values.
+// Returns a Value (register or constant) that holds the computed result.
 func (b *builder) visitExpression(expr ast.Expression) Value {
 	if expr == nil {
 		return nil
@@ -40,9 +42,11 @@ func (b *builder) visitExpression(expr ast.Expression) Value {
 	case *ast.Allocate:
 		return b.visitAllocate(e)
 	case *ast.LValue:
+		// Single-component LValues are just variable reads
 		if len(e.Values) == 1 {
 			return b.visitExpression(e.Values[0])
 		}
+		// Multi-component (a.b.c) needs GEP chain to compute the field address
 		addr := b.visitSelectorAddress(e)
 		res := b.nextRegister(e.GetType())
 		b.currBlock.AddInstruction(&Load{Result: res, Src: addr})
@@ -59,6 +63,8 @@ func (b *builder) loadVariable(v *ast.Variable) Value {
 	return res
 }
 
+// getVariableAddress returns the pointer (alloca or global) for a named variable.
+// Locals come from the alloca map, globals are referenced with @name syntax.
 func (b *builder) getVariableAddress(name string, ty types.Type) Value {
 	addr, ok := b.locals[name]
 	if !ok {
@@ -182,6 +188,8 @@ func (b *builder) visitReturn(s *ast.Return) {
 	b.currBlock.AddInstruction(&Return{Val: val})
 }
 
+// visitConditional generates the diamond CFG pattern for if/else:
+// current -> [cond] -> trueL / falseL -> joinL
 func (b *builder) visitConditional(s *ast.Conditional) {
 	trueL := b.nextLabel()
 	falseL := b.nextLabel()
@@ -190,6 +198,7 @@ func (b *builder) visitConditional(s *ast.Conditional) {
 	cond := b.visitExpression(s.Condition)
 	b.currBlock.AddInstruction(&CondBranch{Cond: cond, TrueL: trueL, FalseL: falseL})
 
+	// True branch
 	b.currBlock = NewBasicBlock(trueL)
 	b.currFunction.AddBlock(b.currBlock)
 	for _, st := range s.ThenBlock {
@@ -199,6 +208,7 @@ func (b *builder) visitConditional(s *ast.Conditional) {
 		b.currBlock.AddInstruction(&Branch{Target: joinL})
 	}
 
+	// False branch (may be empty for plain 'if' without 'else')
 	b.currBlock = NewBasicBlock(falseL)
 	b.currFunction.AddBlock(b.currBlock)
 	for _, st := range s.ElseBlock {
@@ -208,22 +218,27 @@ func (b *builder) visitConditional(s *ast.Conditional) {
 		b.currBlock.AddInstruction(&Branch{Target: joinL})
 	}
 
+	// Both branches converge here
 	b.currBlock = NewBasicBlock(joinL)
 	b.currFunction.AddBlock(b.currBlock)
 }
 
+// visitLoop generates the loop CFG: current -> condL <-> bodyL, condL -> exitL
 func (b *builder) visitLoop(s *ast.Loop) {
 	condL := b.nextLabel()
 	bodyL := b.nextLabel()
 	exitL := b.nextLabel()
 
+	// Jump to condition check
 	b.currBlock.AddInstruction(&Branch{Target: condL})
 
+	// Condition block: evaluate and branch
 	b.currBlock = NewBasicBlock(condL)
 	b.currFunction.AddBlock(b.currBlock)
 	cond := b.visitExpression(s.Condition)
 	b.currBlock.AddInstruction(&CondBranch{Cond: cond, TrueL: bodyL, FalseL: exitL})
 
+	// Body block: execute loop body, then jump back to condition
 	b.currBlock = NewBasicBlock(bodyL)
 	b.currFunction.AddBlock(b.currBlock)
 	for _, st := range s.LoopBlock {
@@ -233,6 +248,7 @@ func (b *builder) visitLoop(s *ast.Loop) {
 		b.currBlock.AddInstruction(&Branch{Target: condL})
 	}
 
+	// Exit block: continues after the loop
 	b.currBlock = NewBasicBlock(exitL)
 	b.currFunction.AddBlock(b.currBlock)
 }
@@ -445,6 +461,8 @@ func (b *builder) visitCallExpression(e *ast.Call) Value {
 	return res
 }
 
+// visitAllocate handles `new StructName` - computes size as numFields * 8 bytes,
+// calls malloc, then bitcasts the raw pointer to the struct pointer type.
 func (b *builder) visitAllocate(e *ast.Allocate) Value {
 
 	ptrStructTy := e.GetType().(*types.PtrStructTy)
@@ -452,6 +470,7 @@ func (b *builder) visitAllocate(e *ast.Allocate) Value {
 	entry, _ := b.tables.Globals.Contains(structName)
 	structEntry := entry.(*st.StructEntry)
 
+	// Each field is 8 bytes (i64/ptr are both 8 bytes on 64-bit)
 	sizeBytes := len(structEntry.Fields) * 8
 	size := &Constant{Val: fmt.Sprintf("%d", sizeBytes), Ty: &I32Ty{}}
 

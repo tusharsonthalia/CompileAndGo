@@ -124,6 +124,8 @@ func NewSymbolTables() *SymbolTables {
 //      Generic Symbol Table
 // ==============================
 
+// SymbolTable is a generic, scope-chained table. Each table points to its parent,
+// so lookups walk up the chain (local -> function -> global) until found.
 type SymbolTable[T TypeEntry] struct {
 	parent *SymbolTable[T]
 	table  map[string]T
@@ -136,6 +138,8 @@ func NewSymbolTable[T TypeEntry](parent *SymbolTable[T]) *SymbolTable[T] {
 	}
 }
 
+// Insert adds an entry to the current scope only. Returns false if already declared
+// (redeclaration error -- we don't overwrite, caller decides what to do).
 func (st *SymbolTable[T]) Insert(id string, entry T) (T, bool) {
 	if existing, ok := st.table[id]; ok {
 		return existing, false
@@ -147,6 +151,8 @@ func (st *SymbolTable[T]) Insert(id string, entry T) (T, bool) {
 
 }
 
+// Contains walks up the scope chain looking for the identifier.
+// This is what gives us lexical scoping: locals shadow globals.
 func (st *SymbolTable[T]) Contains(id string) (T, bool) {
 	for cur := st; cur != nil; cur = cur.parent {
 		if v, ok := cur.table[id]; ok {

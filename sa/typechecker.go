@@ -81,18 +81,22 @@ func (tc *typeChecker) BlockGuaranteesReturn(stmts []ast.Statement) bool {
 	return false
 }
 
+// StmtGuaranteesReturn checks if a statement unconditionally returns.
+// Used to verify that non-void functions always return on every path.
 func (tc *typeChecker) StmtGuaranteesReturn(stmt ast.Statement) bool {
 	switch s := stmt.(type) {
 	case *ast.Return:
 		return true
 
 	case *ast.Conditional:
+		// An if/else guarantees a return only if BOTH branches do
 		if len(s.ElseBlock) == 0 {
 			return false
 		}
 		return tc.BlockGuaranteesReturn(s.ThenBlock) && tc.BlockGuaranteesReturn(s.ElseBlock)
 
 	case *ast.Loop:
+		// Can't guarantee a loop body executes, so loops don't count
 		return false
 
 	default:

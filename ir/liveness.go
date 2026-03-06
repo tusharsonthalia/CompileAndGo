@@ -2,6 +2,8 @@ package ir
 
 import "fmt"
 
+// LinearScanPass drives the full register allocation pipeline per function:
+// linearize blocks in RPO, compute liveness, build intervals, then allocate.
 func (b *builder) LinearScanPass() {
 	for _, fn := range b.functions {
 
@@ -18,6 +20,9 @@ func (b *builder) LinearScanPass() {
 	}
 }
 
+// linearizeCodeRPO orders blocks in reverse post-order, which gives us a sensible
+// linear layout for the liveness analysis (dominators come before dominated blocks).
+// Also assigns a sequential position number to each instruction.
 func linearizeCodeRPO(fn *Function) ([]*BasicBlock, map[Instruction]int) {
 	if len(fn.Blocks) == 0 {
 		return nil, nil
@@ -39,13 +44,16 @@ func linearizeCodeRPO(fn *Function) ([]*BasicBlock, map[Instruction]int) {
 
 	dfs(fn.Blocks[0])
 
+	// Reverse post-order = reverse of the postOrder list
 	rpoBlocks := make([]*BasicBlock, len(postOrder))
 	for i, j := 0, len(postOrder)-1; j >= 0; i, j = i+1, j-1 {
 		rpoBlocks[i] = postOrder[j]
 	}
 
+	// Reorder function blocks to match RPO (important for the backend too)
 	fn.Blocks = rpoBlocks
 
+	// Assign each instruction a position for interval computation
 	instPosMap := make(map[Instruction]int)
 	pos := 0
 
@@ -59,6 +67,13 @@ func linearizeCodeRPO(fn *Function) ([]*BasicBlock, map[Instruction]int) {
 	return rpoBlocks, instPosMap
 }
 
+// buildBlockLiveness runs the iterative backward dataflow analysis to compute
+// LiveIn/LiveOut sets for each block. Classic equations:
+//
+//	LiveOut[B] = union of LiveIn[S] for all successors S
+//	LiveIn[B]  = Use[B] union (LiveOut[B] - Def[B])
+//
+// Iterates until reaching a fixed point.
 func buildBlockLiveness(blocks []*BasicBlock) (map[string]map[int]bool, map[string]map[int]bool) {
 
 	useMap := make(map[string]map[int]bool)
@@ -77,6 +92,7 @@ func buildBlockLiveness(blocks []*BasicBlock) (map[string]map[int]bool, map[stri
 		}
 	}
 
+	// Fixed-point iteration, bottom-up
 	changed := true
 	for changed {
 		changed = false
@@ -88,12 +104,14 @@ func buildBlockLiveness(blocks []*BasicBlock) (map[string]map[int]bool, map[stri
 			oldOut := fmt.Sprint(liveOut[l])
 			oldIn := fmt.Sprint(liveIn[l])
 
+			// LiveOut = union of successor LiveIn sets
 			for _, succ := range bl.Successors {
 				for r := range liveIn[succ.Label] {
 					liveOut[l][r] = true
 				}
 			}
 
+			// LiveIn = Use union (LiveOut - Def)
 			for r := range useMap[l] {
 				liveIn[l][r] = true
 			}
@@ -113,10 +131,12 @@ func buildBlockLiveness(blocks []*BasicBlock) (map[string]map[int]bool, map[stri
 	return liveIn, liveOut
 }
 
+// parseInstUsesAndDefs classifies each register operand as a "use" or "def".
+// A register is a use if it's read before being defined in this block.
 func parseInstUsesAndDefs(inst Instruction, uses, defs map[int]bool) {
 	addUse := func(v Value) {
 		if reg, ok := v.(*Register); ok {
-
+			// Only count as a use if we haven't already defined it in this block
 			if !defs[reg.ID] {
 				uses[reg.ID] = true
 			}
@@ -246,6 +266,7 @@ func buildLiveIntervals(blocks []*BasicBlock, posMap map[Instruction]int, liveOu
 		}
 	}
 
+	// Extend intervals for registers that are live across block boundaries
 	for _, b := range blocks {
 		boundaryPos := getMaxPos(b)
 		for id := range liveOut[b.Label] {

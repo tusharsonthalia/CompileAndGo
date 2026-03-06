@@ -48,6 +48,8 @@ func (nr *nameResolver) PrintErrors() {
 	}
 }
 
+// ResolveExpression checks that all identifiers used in an expression are declared
+// in the given scope. For calls, we check the global scope since functions are top-level.
 func (nr *nameResolver) ResolveExpression(astExpr ast.Expression, table *st.SymbolTable[st.TypeEntry]) {
 	switch expr := astExpr.(type) {
 
@@ -57,6 +59,7 @@ func (nr *nameResolver) ResolveExpression(astExpr ast.Expression, table *st.Symb
 			nr.addError(expr.Line, expr.Column, msg)
 		}
 	case *ast.LValue:
+		// Only need to resolve the base variable; field access is checked during type checking
 		nr.ResolveExpression(expr.Values[0], table)
 	case *ast.BinOp:
 		nr.ResolveExpression(expr.LValue, table)
@@ -69,6 +72,7 @@ func (nr *nameResolver) ResolveExpression(astExpr ast.Expression, table *st.Symb
 			nr.addError(expr.Line, expr.Column, msg)
 		}
 	case *ast.Call:
+		// Functions are always in the global scope
 		nr.ResolveExpression(expr.Name, nr.tables.Globals)
 	case *ast.Selector:
 		nr.ResolveExpression(expr.Target, table)
@@ -221,6 +225,8 @@ func (nr *nameResolver) ResolveFuncDecl(decl *ast.FuncDecl) {
 	}
 }
 
+// ResolveAST processes declarations in grammar order: types -> globals -> functions.
+// This ordering matters because functions can reference types and globals.
 func (nr *nameResolver) ResolveAST(program *ast.Program) {
 	for _, typeDecl := range program.Types {
 		nr.ResolveTypeDecl(typeDecl)
@@ -234,6 +240,7 @@ func (nr *nameResolver) ResolveAST(program *ast.Program) {
 		nr.ResolveFuncDecl(funcDecl)
 	}
 
+	// Language spec requires a main() with no args and no return
 	entry, _ := nr.tables.Globals.Contains("main")
 	funcEntry, ok := entry.(*st.FuncEntry)
 	if !ok {

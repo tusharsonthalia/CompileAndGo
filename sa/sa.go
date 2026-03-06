@@ -1,10 +1,9 @@
 package sa
 
-// Package sa implements the Semantic Analysis phase of the compiler.
-// It is responsible for:
-// 1. Symbol Table mapping: Resolving names and scopes for variables, functions, and types.
-// 2. Type checking: Ensuring that operations are valid for their given types.
-// If any errors are found during these steps, the compiler returns nil to halt further processing.
+// Package sa runs semantic analysis in two passes over the AST:
+// 1. Name resolution: populates the symbol table and checks all identifiers exist
+// 2. Type checking: validates type compatibility for all expressions and statements
+// If either pass finds errors, it prints them and returns nil to halt compilation.
 
 import (
 	"golite/ast"

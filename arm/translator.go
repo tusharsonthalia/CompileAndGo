@@ -38,14 +38,16 @@ func (b *builder) translateGlobals() {
 func (b *builder) translateFunctions() {
 	for _, fn := range b.irBuilder.Functions() {
 		name := fn.Entry.Name
+		// Apple convention: all symbols get a leading underscore
 		if b.isApple {
 			name = "_" + name
 		}
 
 		b.emitText(fmt.Sprintf("\t.globl\t%s", name))
-		b.emitText("\t.p2align\t2")
+		b.emitText("\t.p2align\t2") // 4-byte alignment for ARM instructions
 		b.emitText(fmt.Sprintf("%s:", name))
 
+		// Save frame pointer and link register, set up new frame
 		b.emitText("\tstp\tx29, x30, [sp, #-16]!")
 		b.emitText("\tmov\tx29, sp")
 
@@ -98,17 +100,21 @@ func (b *builder) translateFunctions() {
 			}
 		}
 
+		// Compute stack frame size: enough slots for all virtual registers,
+		// rounded up to 16-byte alignment (ARM64 requirement)
 		if maxReg >= 0 {
 			stackSpace := ((maxReg * 8) + 15) & ^15
 			if stackSpace > 0 {
 				b.emitText(fmt.Sprintf("\tsub\tsp, sp, #%d", stackSpace))
 			}
+			// Spill incoming args (x0..x7) to stack so they're accessible by offset
 			for i := 0; i < paramCount && i < 8; i++ {
 				offset := (i + 1) * 8
 				b.emitText(fmt.Sprintf("\tstr\tx%d, [x29, #-%d]", i, offset))
 			}
 		}
 
+		// Save callee-saved registers we might clobber
 		b.emitText("\tstp\tx19, x20, [sp, #-16]!")
 		b.emitText("\tstp\tx21, x22, [sp, #-16]!")
 		b.emitText("\tstp\tx23, x24, [sp, #-16]!")
@@ -123,6 +129,7 @@ func (b *builder) translateFunctions() {
 			}
 		}
 
+		// Restore callee-saved registers in reverse order, tear down frame, return
 		b.emitText(fmt.Sprintf(".L%s_end:", fn.Entry.Name))
 		b.emitText("\tldp\tx27, x28, [sp], #16")
 		b.emitText("\tldp\tx25, x26, [sp], #16")

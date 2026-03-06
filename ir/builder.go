@@ -1,11 +1,8 @@
 package ir
 
-// Package ir handles the Intermediate Representation (IR) generation phase.
-// It takes the semantically checked Abstract Syntax Tree (AST) and constructs a Control Flow Graph (CFG),
-// generating LLVM IR instructions for each basic block.
-//
-// Note: Advanced optimization passes (like linear scan register allocation and 2SAT-based dead code elimination)
-// are currently experimental placeholders and remain incomplete.
+// Package ir builds a Control Flow Graph of LLVM-style instructions from the AST.
+// After initial generation (alloca-based), it runs Mem2Reg -> OutOfSSA -> LinearScan
+// to produce register-allocated, non-SSA IR ready for the ARM backend.
 
 import (
 	"fmt"
@@ -31,14 +28,14 @@ type builder struct {
 	tables       *st.SymbolTables
 	functions    []*Function
 	globals      []*Global
-	types        []string
-	preamble     []string
-	registerID   int
-	labelID      int
+	types        []string // %struct.* type declarations
+	preamble     []string // source_filename, target triple, extern decls
+	registerID   int      // monotonically increasing virtual register counter
+	labelID      int      // counter for generating unique block labels
 	currFunction *Function
 	currBlock    *BasicBlock
-	locals       map[string]Value
-	fmtStrings   map[string]string
+	locals       map[string]Value  // maps variable names -> their alloca'd register
+	fmtStrings   map[string]string // deduplicates format strings for printf/scanf
 }
 
 func (b *builder) Functions() []*Function {
@@ -154,6 +151,7 @@ func (b *builder) addVarDecl(entry *st.VarEntry) {
 }
 
 func (b *builder) addFuncEntry(entry *st.FuncEntry, decl *ast.FuncDecl) {
+	// Reset per-function state
 	b.registerID = 0
 	b.labelID = 0
 	b.locals = make(map[string]Value)
@@ -166,6 +164,8 @@ func (b *builder) addFuncEntry(entry *st.FuncEntry, decl *ast.FuncDecl) {
 	b.currBlock = entryBlock
 	fn.AddBlock(entryBlock)
 
+	// Spill all params to stack slots so they're uniformly accessible as alloca'd locals.
+	// Mem2Reg will promote these to SSA registers later.
 	for _, param := range entry.Params {
 		reg := b.nextRegister(&PointerType{Base: param.Ty})
 		b.currBlock.AddInstruction(&Alloca{Result: reg, Ty: param.Ty})
@@ -198,6 +198,7 @@ func (b *builder) addFuncEntry(entry *st.FuncEntry, decl *ast.FuncDecl) {
 		b.visitStatement(stmt)
 	}
 
+	// Ensure every block has a terminator -- unreachable blocks get a default return
 	if b.currBlock.Terminator == nil {
 		if entry.ReturnTy == types.VoidTySig || entry.ReturnTy == nil {
 			b.currBlock.AddInstruction(&Return{Val: nil})
@@ -232,6 +233,10 @@ func (b *builder) BuildProgram(filename string, target string, llvmStackMode boo
 		b.addFuncEntry(funcEntry, funcDecl)
 	}
 
+	// In full compilation mode, run the optimization pipeline:
+	// 1. Mem2Reg: promote stack slots to SSA registers
+	// 2. OutOfSSA: replace phi nodes with mov instructions
+	// 3. LinearScan: map virtual regs to physical ARM registers
 	if !llvmStackMode {
 		b.Mem2RegPass()
 		b.OutOfSSAPass()
