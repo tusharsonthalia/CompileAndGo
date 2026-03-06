@@ -28,18 +28,18 @@ A compiler for **Golite**, a statically-typed, C-like language, written entirely
 The compiler follows a classical multi-pass architecture. Each pass is a separate Go package, and the main driver (`golite/golite.go`) orchestrates the pipeline sequentially:
 
 ```mermaid
-graph LR
-    A[".golite Source"] --> B["Lexer<br/>(ANTLR)"]
-    B --> C["Parser<br/>(Listener)"]
+graph TD
+    A[".golite Source"] --> B["Lexer (ANTLR)"]
+    B --> C["Parser (Listener)"]
     C --> D["AST"]
-    D --> E["Name<br/>Resolution"]
-    E --> F["Type<br/>Checking"]
-    F --> G["IR Builder<br/>(CFG + LLVM IR)"]
-    G --> H["Mem2Reg<br/>(SSA)"]
-    H --> I["Liveness<br/>Analysis"]
-    I --> J["Linear Scan<br/>Reg Alloc"]
+    D --> E["Name Resolution"]
+    E --> F["Type Checking"]
+    F --> G["IR Builder (CFG + LLVM IR)"]
+    G --> H["Mem2Reg (SSA)"]
+    H --> I["Liveness Analysis"]
+    I --> J["Linear Scan Reg Alloc"]
     J --> K["Out-of-SSA"]
-    K --> L["ARM64<br/>Code Gen"]
+    K --> L["ARM64 Code Gen"]
     L --> M[".s Assembly"]
 ```
 
