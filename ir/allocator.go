@@ -1,5 +1,14 @@
 package ir
 
+// Package ir implements Linear Scan Register Allocation.
+// This pass dynamically maps an unbounded amount of SSA virtual-registers to a finite bounded
+// pool of physical AArch64 registers (e.g. x19-x28).
+//
+// Core Algorithm:
+// - Maintains a sorted `ActiveList` of live intervals currently held in physical registers.
+// - As new intervals arise temporally, expired intervals are popped off the list and their phys-registers returned to the `freePool`.
+// - If the `freePool` becomes saturated (0 registers available), the interval with the furthest chronological End date is forcibly Spilled into memory to satisfy the urgent register constraint.
+
 import (
 	"fmt"
 	"sort"

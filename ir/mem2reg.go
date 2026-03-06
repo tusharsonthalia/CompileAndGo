@@ -1,5 +1,12 @@
 package ir
 
+// Package ir defines the Mem2Reg pass for constructing Static Single Assignment (SSA) form.
+// This pass performs the following sequential actions:
+// 1. Promotable Identification: Scans the IR for simple `alloca` memory locations that can safely be converted to SSA virtual registers.
+// 2. Control Flow Graph traversal: Identifies the iterative dominance frontiers (where divergent blocks merge).
+// 3. Dataflow Phi-Insertion: Places Phi (φ) nodes at these dominance frontiers where a promotable value is defined in multiple parallel branches.
+// 4. Renaming: Performs a pre-order traversal of the CFG dominator tree to rename variable instances into unique `x_n` SSA forms based on current scoped definitions.
+
 import (
 	"fmt"
 	"golite/types"

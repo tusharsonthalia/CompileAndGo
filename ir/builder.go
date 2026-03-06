@@ -1,5 +1,12 @@
 package ir
 
+// Package ir handles the Intermediate Representation (IR) generation phase.
+// It takes the semantically checked Abstract Syntax Tree (AST) and constructs a Control Flow Graph (CFG),
+// generating LLVM IR instructions for each basic block.
+//
+// Note: Advanced optimization passes (like linear scan register allocation and 2SAT-based dead code elimination)
+// are currently experimental placeholders and remain incomplete.
+
 import (
 	"fmt"
 	"golite/ast"

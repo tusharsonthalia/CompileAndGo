@@ -1,5 +1,13 @@
 package ir
 
+// Package ir implements the Out-Of-SSA Translation phase.
+// Native ASM execution architectures implicitly cannot process parallel Phi (φ) assignments simultaneously.
+// Therefore, the SSA constraint guarantees must be stripped.
+//
+// Core Algorithm:
+// 1. Critical Edge Splitting: Traverses the CFG checking for edges from multiple-successor blocks to multiple-predecessor blocks. It organically splits these with an atomic intermediate block to prevent assignment clobber collisions.
+// 2. Phi-Demotion: Disassembles the explicitly formulated φ-nodes into concrete parallel `MOV` instructions appended accurately at the tails of the active predecessor defining nodes.
+
 import "fmt"
 
 func (b *builder) OutOfSSAPass() {

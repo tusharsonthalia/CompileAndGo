@@ -19,9 +19,9 @@ func (b *builder) translateGlobals() {
 			if !g.IsPrivate {
 				b.emitBss(fmt.Sprintf("\t.globl\t%s", name))
 			}
-			b.emitBss(fmt.Sprintf("\t.p2align\t3"))
+			b.emitBss("\t.p2align\t3")
 			b.emitBss(fmt.Sprintf("%s:", name))
-			b.emitBss(fmt.Sprintf("\t.space\t8"))
+			b.emitBss("\t.space\t8")
 		} else if strings.HasPrefix(val, "c\"") {
 			s := strings.TrimPrefix(val, "c\"")
 			s = strings.TrimSuffix(s, "\"")
@@ -43,7 +43,7 @@ func (b *builder) translateFunctions() {
 		}
 
 		b.emitText(fmt.Sprintf("\t.globl\t%s", name))
-		b.emitText(fmt.Sprintf("\t.p2align\t2"))
+		b.emitText("\t.p2align\t2")
 		b.emitText(fmt.Sprintf("%s:", name))
 
 		b.emitText("\tstp\tx29, x30, [sp, #-16]!")

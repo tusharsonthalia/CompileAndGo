@@ -1,5 +1,9 @@
 package arm
 
+// Package arm translates the generated LLVM Intermediate Representation (IR) or basic blocks
+// into executable ARM64 assembly. It translates global variables, handles the BSS and Data sections,
+// and maps IR structures to native AArch64 conventions.
+
 import (
 	"fmt"
 	"golite/ir"

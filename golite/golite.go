@@ -15,7 +15,7 @@ import (
 func main() {
 	lexerFlag := flag.Bool("l", false, "print lexer tokens")
 	astFlag := flag.Bool("ast", false, "print AST")
-	llvmFlag := flag.String("target", "x86_64-linux-gnu", "llvm target architecuture")
+	llvmFlag := flag.String("target", "arm64-apple-macosx14.0.0", "llvm target architecuture")
 	llvmStackFlag := flag.Bool("llvm-stack", false, "output stack-based LLVM IR instead of register-based SSA")
 	armFlag := flag.Bool("S", false, "Compile LLVM to ARM64 assembly")
 	flag.Parse()
